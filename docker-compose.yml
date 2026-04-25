@@ -1,0 +1,48 @@
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres_db
+    environment:
+      POSTGRES_DB: bigdata_lab
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data:/tmp/csv_data
+    networks:
+      - lab-net
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.8
+    container_name: clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    environment:
+      CLICKHOUSE_DB: reports
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ""
+    volumes:
+      - ./init_clickhouse.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - lab-net
+  spark:
+    image: jupyter/pyspark-notebook:spark-3.4.1
+    container_name: spark_driver
+    user: root
+    working_dir: /home/jovyan/work
+    volumes:
+      - ./:/home/jovyan/work
+    command: >
+      bash -c "pip install psycopg2-binary && tail -f /dev/null"
+    networks:
+      - lab-net
+    depends_on:
+      - postgres
+      - clickhouse
+
+networks:
+  lab-net:
+    driver: bridge
